@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ProductCategory}
+    password: ${SPRING_DATASOURCE_PASSWORD:lugun}
+  data:
+    redis:
+      port: ${SPRING_REDIS_PORT:6380}
+      host: ${SPRING_REDIS_HOST:localhost}
+  application:
+    name: ProductCategory
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: "true"
+  flyway:
+    baseline-on-migrate: true # Allows Flyway to baseline an existing DB
+    enabled: true # Enable Flyway
+    locations: classpath:db/migration # Default folder for migration scripts
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+server:
+  port: ${SERVER_PORT:8081}
+
+eureka:
+  instance:
+    prefer-ip-address: true # Register with IP instead of hostname
+    hostname: ${spring.cloud.client.ip-address} # Explicit IP
+    instance-id: ${spring.application.name}:${server.port} # Unique instance ID
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/} # Eureka server URL
+
+jwt:
+  secret: ${MY_SECRET_KEY:mySecretKeymySecretKeymySecretKeymySecretKey}

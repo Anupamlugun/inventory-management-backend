@@ -1,0 +1,14 @@
+# === Kafka Data Volumes ===
+kafka1-data/
+kafka2-data/
+kafka3-data/
+# === Kafka Logs ===
+kafka1-log/
+kafka2-log/
+kafka3-log/
+
+
+# === Zookeeper Data & Logs ===
+zookeeper-data/
+zookeeper-log/
+

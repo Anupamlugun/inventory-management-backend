@@ -1,0 +1,200 @@
+version: "3.8"
+
+services:
+  # Infrastructure Services
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: lugun
+    ports:
+      - "5444:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - inventory-net
+
+  redis:
+    image: redis:3.2.12
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - inventory-net
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - ./zookeeper-data:/var/lib/zookeeper/data
+      - ./zookeeper-log:/var/lib/zookeeper/log
+
+    networks:
+      - inventory-net
+
+  kafka1:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    ports:
+      - "29092:29092"
+    volumes:
+      - ./kafka1-data:/var/lib/kafka/data
+      - ./kafka1-log:/var/lib/kafka/log
+
+    networks:
+      - inventory-net
+
+  kafka2:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9093,PLAINTEXT_HOST://localhost:29093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+    ports:
+      - "29093:29093"
+    volumes:
+      - ./kafka2-data:/var/lib/kafka/data
+      - ./kafka2-log:/var/lib/kafka/log
+    networks:
+      - inventory-net
+
+  # Application Services
+  eureka-server:
+    image: roshan049/eureka-server:1.0
+    environment:
+      SERVER_PORT: 8761
+    ports:
+      - "8761:8761"
+    networks:
+      - inventory-net
+
+  product-service:
+    image: roshan049/product-category-service:1.0
+    environment:
+      SERVER_PORT: 8081
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ProductCategory
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: lugun
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9093
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MY_SECRET_KEY: mySecretKeymySecretKeymySecretKeymySecretKey
+    ports:
+      - "8081:8081"
+    networks:
+      - inventory-net
+    depends_on:
+      - postgres
+      - redis
+      - eureka-server
+      - kafka1
+      - kafka2
+
+  supplier-service:
+    image: roshan049/supplier-stock-service:1.0
+    environment:
+      SERVER_PORT: 8082
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/SupplierStock
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: lugun
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9093
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MY_SECRET_KEY: mySecretKeymySecretKeymySecretKeymySecretKey
+    ports:
+      - "8082:8082"
+    networks:
+      - inventory-net
+    depends_on:
+      - postgres
+      - redis
+      - eureka-server
+      - kafka1
+      - kafka2
+
+  order-service:
+    image: roshan049/order-sale-service:1.0
+    environment:
+      SERVER_PORT: 8083
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/OrderSale
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: lugun
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka1:9092,kafka2:9093
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MY_SECRET_KEY: mySecretKeymySecretKeymySecretKeymySecretKey
+    ports:
+      - "8083:8083"
+    networks:
+      - inventory-net
+    depends_on:
+      - postgres
+      - redis
+      - eureka-server
+      - kafka1
+      - kafka2
+
+  auth-service:
+    image: roshan049/auth-service:1.0
+    environment:
+      SERVER_PORT: 8008
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: lugun
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      MY_SECRET_KEY: mySecretKeymySecretKeymySecretKeymySecretKey
+      JWT_ACCESS_EXPIRATION: 300000
+      JWT_REFRESH_EXPIRATION: 604800000
+    ports:
+      - "8008:8008"
+    networks:
+      - inventory-net
+    depends_on:
+      - postgres
+      - redis
+      - eureka-server
+
+  api-gateway:
+    image: roshan049/api-gateway:1.0
+    environment:
+      SERVER_PORT: 8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    ports:
+      - "8888:8888"
+    networks:
+      - inventory-net
+    depends_on:
+      - eureka-server
+
+volumes:
+  postgres-data:
+  redis-data:
+  zookeeper-data:
+  kafka1-data:
+  kafka2-data:
+  zookeeper-log:
+  kafka1-log:
+  kafka2-log:
+
+networks:
+  inventory-net:
+    driver: bridge
