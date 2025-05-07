@@ -9,7 +9,6 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
-    # Add PostgreSQL service for testing
     services:
       postgres:
         image: postgres:16-alpine
@@ -35,73 +34,91 @@ jobs:
           java-version: "21"
           distribution: "temurin"
 
-      # Install PostgreSQL client to create databases
       - name: Install PostgreSQL Client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432; do
+            sleep 2
+          done
 
       - name: Login to Docker Hub
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2-
+
       # === API Gateway ===
       - name: Build API Gateway
         run: |
+          set -e
           cd ApiGatewayApplication
           mvn clean install
-          DOCKER_TAG="api-gateway:${GITHUB_SHA}"
+          DOCKER_TAG="${{ secrets.DOCKER_USERNAME }}/api-gateway:${GITHUB_SHA}"
           docker build -t $DOCKER_TAG .
-          docker tag $DOCKER_TAG ${{ secrets.DOCKER_USERNAME }}/$DOCKER_TAG
-          docker push ${{ secrets.DOCKER_USERNAME }}/$DOCKER_TAG
+          docker push $DOCKER_TAG
+          cd ..
 
       # === Auth Service ===
       - name: Build Auth Service
         run: |
+          set -e
           psql "postgresql://postgres:lugun@localhost:5432/postgres" -c "CREATE DATABASE auth_db;"
           cd AuthServer
           mvn clean install -Dspring.datasource.url=jdbc:postgresql://localhost:5432/auth_db -Dspring.datasource.username=postgres -Dspring.datasource.password=lugun
-          DOCKER_TAG="auth-service:${GITHUB_SHA}"
+          DOCKER_TAG="${{ secrets.DOCKER_USERNAME }}/auth-service:${GITHUB_SHA}"
           docker build -t $DOCKER_TAG .
-          docker tag $DOCKER_TAG ${{ secrets.DOCKER_USERNAME }}/$DOCKER_TAG
-          docker push ${{ secrets.DOCKER_USERNAME }}/$DOCKER_TAG
+          docker push $DOCKER_TAG
+          cd ..
 
       # === Order Sale Service ===
       - name: Build Order Sale Service
         run: |
-          psql "postgresql://postgres:lugun@localhost:5432/postgres" -c "CREATE DATABASE OrderSale;"
+          set -e
+          psql "postgresql://postgres:lugun@localhost:5432/postgres" -c "CREATE DATABASE ordersale;"
           cd OrderSale
-          mvn clean install -Dspring.datasource.url=jdbc:postgresql://localhost:5432/OrderSale -Dspring.datasource.username=postgres -Dspring.datasource.password=lugun
-          DOCKER_TAG="order-sale-service:${GITHUB_SHA}"
+          mvn clean install -Dspring.datasource.url=jdbc:postgresql://localhost:5432/ordersale -Dspring.datasource.username=postgres -Dspring.datasource.password=lugun
+          DOCKER_TAG="${{ secrets.DOCKER_USERNAME }}/order-sale-service:${GITHUB_SHA}"
           docker build -t $DOCKER_TAG .
-          docker tag $DOCKER_TAG ${{ secrets.DOCKER_USERNAME }}/$DOCKER_TAG
-          docker push ${{ secrets.DOCKER_USERNAME }}/$DOCKER_TAG
+          docker push $DOCKER_TAG
+          cd ..
 
       # === Supplier Stock Service ===
       - name: Build Supplier Stock Service
         run: |
-          psql "postgresql://postgres:lugun@localhost:5432/postgres" -c "CREATE DATABASE SupplierStock;"
+          set -e
+          psql "postgresql://postgres:lugun@localhost:5432/postgres" -c "CREATE DATABASE supplierstock;"
           cd SupplierStock
-          mvn clean install -Dspring.datasource.url=jdbc:postgresql://localhost:5432/SupplierStock -Dspring.datasource.username=postgres -Dspring.datasource.password=lugun
-          DOCKER_TAG="supplier-stock-service:${GITHUB_SHA}"
+          mvn clean install -Dspring.datasource.url=jdbc:postgresql://localhost:5432/supplierstock -Dspring.datasource.username=postgres -Dspring.datasource.password=lugun
+          DOCKER_TAG="${{ secrets.DOCKER_USERNAME }}/supplier-stock-service:${GITHUB_SHA}"
           docker build -t $DOCKER_TAG .
-          docker tag $DOCKER_TAG ${{ secrets.DOCKER_USERNAME }}/$DOCKER_TAG
-          docker push ${{ secrets.DOCKER_USERNAME }}/$DOCKER_TAG
+          docker push $DOCKER_TAG
+          cd ..
 
       # === Product Category Service ===
       - name: Build Product Category Service
         run: |
-          psql "postgresql://postgres:lugun@localhost:5432/postgres" -c "CREATE DATABASE ProductCategory;"
+          set -e
+          psql "postgresql://postgres:lugun@localhost:5432/postgres" -c "CREATE DATABASE productcategory;"
           cd ProductCategory
-          mvn clean install -Dspring.datasource.url=jdbc:postgresql://localhost:5432/ProductCategory -Dspring.datasource.username=postgres -Dspring.datasource.password=lugun
-          DOCKER_TAG="product-category-service:${GITHUB_SHA}"
+          mvn clean install -Dspring.datasource.url=jdbc:postgresql://localhost:5432/productcategory -Dspring.datasource.username=postgres -Dspring.datasource.password=lugun
+          DOCKER_TAG="${{ secrets.DOCKER_USERNAME }}/product-category-service:${GITHUB_SHA}"
           docker build -t $DOCKER_TAG .
-          docker tag $DOCKER_TAG ${{ secrets.DOCKER_USERNAME }}/$DOCKER_TAG
-          docker push ${{ secrets.DOCKER_USERNAME }}/$DOCKER_TAG
+          docker push $DOCKER_TAG
+          cd ..
 
       # === Eureka Server ===
       - name: Build Eureka Server
         run: |
+          set -e
           cd servicediscovery
           mvn clean install
-          DOCKER_TAG="eureka-server:${GITHUB_SHA}"
+          DOCKER_TAG="${{ secrets.DOCKER_USERNAME }}/eureka-server:${GITHUB_SHA}"
           docker build -t $DOCKER_TAG .
-          docker tag $DOCKER_TAG ${{ secrets.DOCKER_USERNAME }}/$DOCKER_TAG
-          docker push ${{ secrets.DOCKER_USERNAME }}/$DOCKER_TAG
+          docker push $DOCKER_TAG
+          cd ..
