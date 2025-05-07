@@ -17,9 +17,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws").setAllowedOrigins("http://localhost:8080", "http://localhost:5173").withSockJS(); // Enable
-                                                                                                                      // SockJS
-                                                                                                                      // fallback
+        registry.addEndpoint("/ws").setAllowedOrigins("http://localhost:8080", "http://localhost:5173",
+                "https://anupam-inventory.netlify.app").withSockJS(); // Enable
+        // SockJS
+        // fallback
     }
 
 }
