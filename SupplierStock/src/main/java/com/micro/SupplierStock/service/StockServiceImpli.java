@@ -180,6 +180,31 @@ public class StockServiceImpli implements StockService {
         }
     }
 
+    @KafkaListener(topics = "deleteproductfromstock", groupId = "supplier-stock")
+    public void consumeDelete(String record) {
+        System.out.println("RAW: " + record);
+        try {
+            String json = mapper.readValue(record, String.class);
+            StockUpdateRequest stockUpdateRequest = mapper.readValue(json,
+                    StockUpdateRequest.class);
+            System.out.println("JSON: " + json);
+            System.out.println("stockUpdateRequest: " +
+                    stockUpdateRequest.getProduct_Id() + " " +
+                    stockUpdateRequest.getEmail());
+
+            // Delete product from stock
+            stockRepository.deleteByProductId(stockUpdateRequest.getProduct_Id());
+
+            // Send message to WebSocket
+            sendmessagewithwebsocket(stockUpdateRequest.getEmail());
+
+        } catch (Exception e) {
+            System.err.println("Error processing Kafka message: " +
+                    e.getMessage());
+
+        }
+    }
+
     @Override
     public Map<String, Long> sendmessagewithwebsocket(String email) {
 

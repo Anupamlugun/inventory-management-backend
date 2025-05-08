@@ -41,4 +41,7 @@ public interface StockRepository extends JpaRepository<StockEntity, Long> {
 
     List<StockEntity> findAllByEmail(String string);
 
+    @Query(value = "DELETE  FROM stock  WHERE product_id = :product_Id", nativeQuery = true)
+    void deleteByProductId(@Param("product_Id") Long product_Id);
+
 }

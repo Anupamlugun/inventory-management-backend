@@ -12,7 +12,7 @@ public interface productService {
 
     Page<Product> retrivePoducts(int page, int size);
 
-    String deletePro(Long productId);
+    String deletePro(Long productId, String authHeader);
 
     String updatePro(Long productId, Product product);
 

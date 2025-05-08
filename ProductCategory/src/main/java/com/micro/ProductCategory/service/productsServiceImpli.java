@@ -15,6 +15,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,10 +41,13 @@ public class productsServiceImpli implements productService {
 
     private final RestTemplate restTemplate;
     private final SimpMessagingTemplate messagingTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    productsServiceImpli(RestTemplate restTemplate, SimpMessagingTemplate messagingTemplate) {
+    productsServiceImpli(RestTemplate restTemplate, SimpMessagingTemplate messagingTemplate,
+            KafkaTemplate<String, Object> kafkaTemplate) {
         this.messagingTemplate = messagingTemplate;
         this.restTemplate = restTemplate;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @Override
@@ -226,14 +230,51 @@ public class productsServiceImpli implements productService {
     }
 
     @Override
-    public String deletePro(Long productId) {
+    public String deletePro(Long productId, String authHeader) {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // Check if authentication is null or the user is not authenticated
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return "User is not authenticated!";
+        }
+
+        String email = authentication.getName();
+
+        String jwt = authHeader.substring(7);
+
         if (!productsRepository.existsById(productId)) {
 
             return "Product not found";
+        } else {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(jwt);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<Stock> stockAvailabilityResponse = restTemplate.exchange(
+                    "http://SUPPLIERSTOCK/getstockavailablity/" + productId,
+                    HttpMethod.GET,
+                    entity,
+                    Stock.class);
+
+            Stock stockAvailability = stockAvailabilityResponse.getBody();
+
+            if (stockAvailability != null && stockAvailability.getAvailable() > 0) {
+                return "Product is in stock, cannot delete";
+            }
+        }
+
+        try {
+            // Send a message to Kafka topic
+            String json = "{\"product_Id\":" + productId + ",\"email\":\"" + email + "\"}";
+            kafkaTemplate.send("deleteproductfromstock", json);
+        } catch (Exception e) {
+            System.out.println("Kafka error: " + e.getMessage());
         }
 
         productsRepository.updateProductStatus(productId, false);
 
+        getProCount(email);
         return "Products delete";
     }
 

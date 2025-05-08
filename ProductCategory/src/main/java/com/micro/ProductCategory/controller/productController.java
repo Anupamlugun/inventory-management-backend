@@ -62,9 +62,9 @@ public class productController {
     }
 
     @PutMapping("/deleteproduct/{productId}")
-    public String deleteProduct(@PathVariable Long productId) {
-
-        return productService.deletePro(productId);
+    public String deleteProduct(@PathVariable Long productId, HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        return productService.deletePro(productId, authHeader);
     }
 
     @GetMapping("/getproductbyid")
