@@ -59,7 +59,6 @@ public class productsServiceImpli implements productService {
 
         // Convert product to productsEntity
         productsEntity productsEntity = new productsEntity();
-        BeanUtils.copyProperties(product, productsEntity);
 
         // Find the category by ID, safely extract the value from Optional
         // Optional<CategoryEntity> optionalCategory =
@@ -78,16 +77,38 @@ public class productsServiceImpli implements productService {
         List<productsEntity> productsEntities = productsRepository.findAllByEmail(email);
 
         for (productsEntity existingProduct : productsEntities) {
-            if (existingProduct.getCategory() != null &&
-                    product.getCategoryId().equals(existingProduct.getCategory().getCategoryId()) &&
-                    product.getProduct_name().equals(existingProduct.getProduct_name())) {
+
+            System.out.println(existingProduct.getProductId() + " " +
+                    existingProduct.getProduct_name() + " " +
+                    existingProduct.getCategory().getCategoryId() + " " +
+                    existingProduct.getEmail() + " " +
+                    existingProduct.getStatus());
+
+            if (product.getCategoryId().equals(existingProduct.getCategory().getCategoryId())
+                    && product.getProduct_name().equals(existingProduct.getProduct_name()) &&
+                    existingProduct.getEmail().equals(email) && existingProduct.getStatus()) {
                 return "Products already exist"; // Early return if duplicate is found
+            } else if (product.getCategoryId().equals(existingProduct.getCategory().getCategoryId())
+                    && product.getProduct_name().equals(existingProduct.getProduct_name()) &&
+                    existingProduct.getEmail().equals(email) && !existingProduct.getStatus()) {
+                // Resurrect the soft-deleted product
+                existingProduct.setStatus(true);
+                existingProduct.setProduct_price(product.getProduct_price());
+
+                productsRepository.save(existingProduct);
+                getProCount(email);
+                return "Product reupdate saved successfully";
             }
+
         }
 
         // Set the category and save the product if no duplicates are found
         productsEntity.setCategory(optionalCategory.get());
         productsEntity.setEmail(email); // Set the email from authentication
+        productsEntity.setStatus(true); // Set status to true
+        productsEntity.setProduct_price(product.getProduct_price()); // Set the
+
+        productsEntity.setProduct_name(product.getProduct_name()); // Set the product
 
         // saving to database
         productsRepository.save(productsEntity);
