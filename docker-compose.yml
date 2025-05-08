@@ -25,56 +25,57 @@ services:
       - inventory-net
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.0
+    image: bitnami/zookeeper:3.9
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
     volumes:
-      - ./zookeeper-data:/var/lib/zookeeper/data
-      - ./zookeeper-log:/var/lib/zookeeper/log
-
+      - zookeeper-data:/bitnami/zookeeper
     networks:
       - inventory-net
 
   kafka1:
-    image: confluentinc/cp-kafka:7.6.0
+    image: bitnami/kafka:3.6.1
     depends_on:
       - zookeeper
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_BROKER_ID=1
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CLIENT://:29092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka1:9092,CLIENT://localhost:29092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CLIENT:PLAINTEXT
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - ALLOW_PLAINTEXT_LISTENER=yes
     ports:
       - "29092:29092"
     volumes:
-      - ./kafka1-data:/var/lib/kafka/data
-      - ./kafka1-log:/var/lib/kafka/log
-
+      - kafka1-data:/bitnami/kafka
     networks:
       - inventory-net
 
   kafka2:
-    image: confluentinc/cp-kafka:7.6.0
+    image: bitnami/kafka:3.6.1
     depends_on:
       - zookeeper
     environment:
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9093,PLAINTEXT_HOST://localhost:29093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_BROKER_ID=2
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9093,CLIENT://:29093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka2:9093,CLIENT://localhost:29093
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,CLIENT:PLAINTEXT
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - ALLOW_PLAINTEXT_LISTENER=yes
     ports:
       - "29093:29093"
     volumes:
-      - ./kafka2-data:/var/lib/kafka/data
-      - ./kafka2-log:/var/lib/kafka/log
+      - kafka2-data:/bitnami/kafka
     networks:
       - inventory-net
 
   # Application Services
   eureka-server:
-    image: roshan049/eureka-server:eb5fb8d3d8acce52d2f1599075a79b815d83023b
+    image: roshan049/eureka-server:b683414d0a21e0fb25eb80eab2291b8bf565a35c
     environment:
       SERVER_PORT: 8761
     ports:
@@ -83,7 +84,7 @@ services:
       - inventory-net
 
   product-service:
-    image: roshan049/product-category-service:eb5fb8d3d8acce52d2f1599075a79b815d83023b
+    image: roshan049/product-category-service:b683414d0a21e0fb25eb80eab2291b8bf565a35c
     environment:
       SERVER_PORT: 8081
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/ProductCategory
@@ -106,7 +107,7 @@ services:
       - kafka2
 
   supplier-service:
-    image: roshan049/supplier-stock-service:eb5fb8d3d8acce52d2f1599075a79b815d83023b
+    image: roshan049/supplier-stock-service:b683414d0a21e0fb25eb80eab2291b8bf565a35c
     environment:
       SERVER_PORT: 8082
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/SupplierStock
@@ -129,7 +130,7 @@ services:
       - kafka2
 
   order-service:
-    image: roshan049/order-sale-service:eb5fb8d3d8acce52d2f1599075a79b815d83023b
+    image: roshan049/order-sale-service:b683414d0a21e0fb25eb80eab2291b8bf565a35c
     environment:
       SERVER_PORT: 8083
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/OrderSale
@@ -152,7 +153,7 @@ services:
       - kafka2
 
   auth-service:
-    image: roshan049/auth-service:eb5fb8d3d8acce52d2f1599075a79b815d83023b
+    image: roshan049/auth-service:b683414d0a21e0fb25eb80eab2291b8bf565a35c
     environment:
       SERVER_PORT: 8008
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
@@ -174,7 +175,7 @@ services:
       - eureka-server
 
   api-gateway:
-    image: roshan049/api-gateway:eb5fb8d3d8acce52d2f1599075a79b815d83023b
+    image: roshan049/api-gateway:b683414d0a21e0fb25eb80eab2291b8bf565a35c
     environment:
       SERVER_PORT: 8888
       EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
@@ -191,9 +192,6 @@ volumes:
   zookeeper-data:
   kafka1-data:
   kafka2-data:
-  zookeeper-log:
-  kafka1-log:
-  kafka2-log:
 
 networks:
   inventory-net:
