@@ -89,6 +89,7 @@ public class SaleServiceImpli implements SaleService {
                 saleItemsEntity.setSale(saleEntity);
                 saleItemsEntity.setItemQty(sale2.getItem_qty());
                 saleItemsEntity.setItemTotalPrice(sale2.getItem_total_price());
+                saleItemsEntity.setEmail(email);
 
                 // for stock need kafka
 

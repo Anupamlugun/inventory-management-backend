@@ -227,7 +227,7 @@ public class StockServiceImpli implements StockService {
 
         // profit and tax calculation
         Double MIN_GST = 0.05;
-        Double MAX_GST = 0.18;
+        Double MAX_GST = 0.1;
         Double MAX_PROFIT = 0.1;
         Double MIN_PROFIT = 0.05;
         Double GST = 0.1;

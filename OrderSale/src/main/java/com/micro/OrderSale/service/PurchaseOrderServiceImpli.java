@@ -146,6 +146,7 @@ public class PurchaseOrderServiceImpli implements PurchaseOrderService {
                 BeanUtils.copyProperties(purchaseOrderItem, purchaseOrderItemsEntity);
                 purchaseOrderItemsEntity.setItemQty(purchaseOrderItem.getItem_qty());
                 purchaseOrderItemsEntity.setItemTotalPrice(purchaseOrderItem.getItem_total_price());
+                purchaseOrderItemsEntity.setEmail(email);
 
                 // Save Item
                 purchaseOrderItemsRepository.save(purchaseOrderItemsEntity);

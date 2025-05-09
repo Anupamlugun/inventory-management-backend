@@ -52,6 +52,9 @@ public class PurchaseOrderItemsEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "email", nullable = false)
+    private String email;
+
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
