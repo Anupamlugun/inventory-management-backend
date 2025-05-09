@@ -285,8 +285,19 @@ public class productsServiceImpli implements productService {
         List<productsEntity> productsEntities = productsRepository.findAll();
         for (productsEntity existingProduct : productsEntities) {
             if (product.getCategoryId().equals(existingProduct.getCategory().getCategoryId())
-                    && product.getProduct_name().equals(existingProduct.getProduct_name())) {
+                    && product.getProduct_name().equals(existingProduct.getProduct_name())
+                    && existingProduct.getEmail().equals(existingProduct.getEmail()) && existingProduct.getStatus()) {
                 return "Products already exist"; // Early return if duplicate is found
+            } else if (product.getCategoryId().equals(existingProduct.getCategory().getCategoryId())
+                    && product.getProduct_name().equals(existingProduct.getProduct_name())
+                    && existingProduct.getEmail().equals(existingProduct.getEmail()) && !existingProduct.getStatus()) {
+                // Resurrect the soft-deleted product
+                existingProduct.setStatus(true);
+                existingProduct.setProduct_price(product.getProduct_price());
+
+                productsRepository.save(existingProduct);
+                getProCount(existingProduct.getEmail());
+                return "Product updated successfully";
             }
         }
 

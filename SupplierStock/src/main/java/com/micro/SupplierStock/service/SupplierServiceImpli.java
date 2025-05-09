@@ -44,9 +44,21 @@ public class SupplierServiceImpli implements SupplierService {
 
         List<SupplierEntity> supplierEntities = supplierRepository.findAllByEmail(email);
         for (SupplierEntity supplierEntity2 : supplierEntities) {
-            if (supplier.getSupplier_phone().equals(supplierEntity2.getSupplierPhone()) ||
-                    supplier.getSupplier_email().equals(supplierEntity2.getSupplierEmail())) {
+            if ((supplier.getSupplier_phone().equals(supplierEntity2.getSupplierPhone()) ||
+                    supplier.getSupplier_email().equals(supplierEntity2.getSupplierEmail())) &&
+                    supplierEntity2.getStatus()) {
                 return "Your phone number or email ID already exists";
+            } else if ((supplier.getSupplier_phone().equals(supplierEntity2.getSupplierPhone()) ||
+                    supplier.getSupplier_email().equals(supplierEntity2.getSupplierEmail())) &&
+                    !supplierEntity2.getStatus()) {
+
+                supplierEntity2.setSupplierName(supplier.getSupplier_name());
+                supplierEntity2.setSupplierPhone(supplier.getSupplier_phone());
+                supplierEntity2.setSupplierEmail(supplier.getSupplier_email());
+                supplierEntity2.setSupplierAddress(supplier.getSupplier_address());
+                supplierEntity2.setStatus(true);
+                supplierRepository.save(supplierEntity2);
+                return "Supplier Saved";
             }
         }
 
@@ -84,7 +96,7 @@ public class SupplierServiceImpli implements SupplierService {
     // get supplier by id
     @Override
     public Optional<Supplier> getSupplierById(Long supplierId) {
-        return supplierRepository.findByStatusTrue().stream()
+        return supplierRepository.findAll().stream()
                 .filter(supplierEntity -> supplierEntity.getSupplierId().equals(supplierId))
                 .findFirst()
                 .map(supplierEntity -> {
@@ -103,9 +115,21 @@ public class SupplierServiceImpli implements SupplierService {
 
         List<SupplierEntity> supplierEntities = supplierRepository.findAll();
         for (SupplierEntity supplierEntity2 : supplierEntities) {
-            if (supplier.getSupplier_phone().equals(supplierEntity2.getSupplierPhone()) ||
-                    supplier.getSupplier_email().equals(supplierEntity2.getSupplierEmail())) {
+            if ((supplier.getSupplier_phone().equals(supplierEntity2.getSupplierPhone()) ||
+                    supplier.getSupplier_email().equals(supplierEntity2.getSupplierEmail())) &&
+                    supplierEntity2.getStatus()) {
                 return "Your phone number or email ID already exists";
+            } else if ((supplier.getSupplier_phone().equals(supplierEntity2.getSupplierPhone()) ||
+                    supplier.getSupplier_email().equals(supplierEntity2.getSupplierEmail())) &&
+                    !supplierEntity2.getStatus()) {
+
+                supplierEntity2.setSupplierName(supplier.getSupplier_name());
+                supplierEntity2.setSupplierPhone(supplier.getSupplier_phone());
+                supplierEntity2.setSupplierEmail(supplier.getSupplier_email());
+                supplierEntity2.setSupplierAddress(supplier.getSupplier_address());
+                supplierEntity2.setStatus(true);
+                supplierRepository.save(supplierEntity2);
+                return "Supplier updated successfully";
             }
         }
 
