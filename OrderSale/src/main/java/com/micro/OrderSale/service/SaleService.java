@@ -20,4 +20,6 @@ public interface SaleService {
     List<SaleItems> getSaleDetail(Long sale);
 
     Sale getSaleByBill(String bill);
+
+    List<SaleItems> getSaleItems();
 }

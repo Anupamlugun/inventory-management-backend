@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -207,4 +208,30 @@ public class SaleServiceImpli implements SaleService {
         return null;
 
     }
+
+    @Override
+    public List<SaleItems> getSaleItems() {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // Check if authentication is null or the user is not authenticated
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null; // or throw an exception, depending on your error handling strategy
+        }
+
+        String email = authentication.getName();
+
+        // Retrieve and map sale items associated with the authenticated user's email
+        List<SaleItemsEntity> saleItemsEntity = saleItemsRepository.findAllByEmail(email);
+        return saleItemsEntity.stream().map(saleItems -> {
+            SaleItems saleItem = new SaleItems();
+            BeanUtils.copyProperties(saleItems, saleItem);
+            saleItem.setProduct_Id(saleItems.getProductId());
+            saleItem.setItem_qty(saleItems.getItemQty());
+            saleItem.setItem_total_price(saleItems.getItemTotalPrice());
+            saleItem.setSale_id(saleItems.getId());
+            return saleItem;
+        }).collect(Collectors.toList());
+    }
+
 }

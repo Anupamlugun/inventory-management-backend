@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -20,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.micro.SupplierStock.dto.SaleItems;
 import com.micro.SupplierStock.dto.StockSaleUpdateRequest;
 import com.micro.SupplierStock.dto.StockUpdateRequest;
 import com.micro.SupplierStock.dto.profit;
@@ -224,6 +227,7 @@ public class StockServiceImpli implements StockService {
         String jwt = authHeader.substring(7);
         Double total_purchase_amount = 0.0;
         Double total_sale_amount = 0.0;
+        Double total_profit_per_product = 0.0;
 
         // profit and tax calculation
         Double MIN_GST = 0.05;
@@ -233,7 +237,17 @@ public class StockServiceImpli implements StockService {
         Double GST = 0.1;
 
         List<StockEntity> stockEntities = stockRepository.findAllByEmail(email);
-        for (StockEntity stockEntity : stockEntities) {
+
+        HttpHeaders headers1 = new HttpHeaders();
+        headers1.setBearerAuth(jwt);
+        HttpEntity<String> entity1 = new HttpEntity<>(headers1);
+
+        ResponseEntity<List<SaleItems>> response = restTemplate.exchange(
+                "http://ORDERSALE/getsaleitems", HttpMethod.GET, entity1,
+                new ParameterizedTypeReference<List<SaleItems>>() {
+                });
+
+        for (SaleItems sales : response.getBody()) {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(jwt);
@@ -241,20 +255,30 @@ public class StockServiceImpli implements StockService {
 
             ResponseEntity<ProCatDtls> proCatDtls = restTemplate.exchange(
                     "http://PRODUCTCATEGORY/getproductdetailsbyproid/" +
-                            stockEntity.getProduct_Id(),
+                            sales.getProduct_Id(),
                     HttpMethod.GET,
                     entity,
                     ProCatDtls.class);
 
+            // total purchase amount
             total_purchase_amount += proCatDtls.getBody().getProduct_price() *
-                    stockEntity.getSaleId();
+                    sales.getItem_qty();
+
+            // total sale amount
             total_sale_amount += proCatDtls.getBody().getProduct_price() > 1000
                     ? (proCatDtls.getBody().getProduct_price() * MAX_GST)
                             + (proCatDtls.getBody().getProduct_price() * MAX_PROFIT)
-                            + proCatDtls.getBody().getProduct_price() * stockEntity.getSaleId()
+                            + proCatDtls.getBody().getProduct_price() * sales.getItem_qty()
                     : (proCatDtls.getBody().getProduct_price() * MIN_GST)
                             + (proCatDtls.getBody().getProduct_price() * MIN_PROFIT)
-                            + proCatDtls.getBody().getProduct_price() * stockEntity.getSaleId();
+                            + proCatDtls.getBody().getProduct_price() * sales.getItem_qty();
+
+            // total profit per product
+            total_profit_per_product += proCatDtls.getBody().getProduct_price() > 1000
+                    ? (proCatDtls.getBody().getProduct_price() * MAX_PROFIT)
+                            + proCatDtls.getBody().getProduct_price() * sales.getItem_qty()
+                    : (proCatDtls.getBody().getProduct_price() * MIN_PROFIT)
+                            + proCatDtls.getBody().getProduct_price() * sales.getItem_qty();
 
         }
 
@@ -268,6 +292,7 @@ public class StockServiceImpli implements StockService {
 
         messagingTemplate.convertAndSend("/topic/totalProfit", profit);
         return profit;
+
     }
 
     @Override

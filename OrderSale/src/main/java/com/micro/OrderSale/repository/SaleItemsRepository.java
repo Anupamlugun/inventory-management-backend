@@ -11,4 +11,6 @@ import com.micro.OrderSale.entity.SaleItemsEntity;
 public interface SaleItemsRepository extends JpaRepository<SaleItemsEntity, Long> {
     @Query(value = "SELECT * FROM sale_items WHERE sale_id = :sale", nativeQuery = true)
     List<SaleItemsEntity> findBySale_order(@Param("sale") Long sale);
+
+    List<SaleItemsEntity> findAllByEmail(String email);
 }

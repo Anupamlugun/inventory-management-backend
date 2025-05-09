@@ -45,4 +45,10 @@ public class SaleController {
     public Sale getSlbill(@RequestParam String bill) {
         return saleServiceImpli.getSaleByBill(bill);
     }
+
+    @GetMapping("/getsaleitems")
+    public List<SaleItems> getSaleItems() {
+
+        return saleServiceImpli.getSaleItems();
+    }
 }
